@@ -21,7 +21,7 @@ public class BallController : MonoBehaviour
     {
         get
         {
-            if (circleCollider == null) return 0.25f;
+            if (circleCollider == null) return PortalDropSpec.DefaultBallRadius;
             float scale = Mathf.Max(transform.lossyScale.x, transform.lossyScale.y);
             return circleCollider.radius * scale;
         }

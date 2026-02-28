@@ -13,8 +13,6 @@ public class PortalManager : MonoBehaviour
 
     private Portal entryPortal;
 
-    private const float TeleportCooldownSeconds = 0.15f;
-
     private void Awake()
     {
         entryPortal = GetComponent<Portal>();
@@ -44,12 +42,12 @@ public class PortalManager : MonoBehaviour
         float angle = Vector2.SignedAngle(entryNormal, exitNormal);
         Vector2 vOut = Quaternion.Euler(0f, 0f, angle) * vIn;
 
-        float offset = ball.BallRadius + 0.05f;
+        float offset = ball.BallRadius + PortalDropSpec.TeleportExitOffset;
         Vector2 exitPos = exitPortalTransform.position;
         Vector2 newPos = exitPos + exitNormal * offset;
 
         ball.transform.position = new Vector3(newPos.x, newPos.y, ball.transform.position.z);
         ball.Rigidbody.velocity = vOut;
-        ball.SetTeleportCooldown(TeleportCooldownSeconds);
+        ball.SetTeleportCooldown(PortalDropSpec.TeleportCooldownSeconds);
     }
 }

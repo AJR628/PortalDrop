@@ -19,13 +19,11 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Button startButton;
     [SerializeField] private Button resetButton;
 
-    [SerializeField] private Vector2 ballSpawnPosition = new Vector2(0f, 7.4f);
-
     public GameState State { get; private set; } = GameState.PlacingPortal;
 
     private void Awake()
     {
-        Time.fixedDeltaTime = 1f / 60f;
+        Time.fixedDeltaTime = PortalDropSpec.FixedDeltaTime;
 
         if (startButton != null)
             startButton.onClick.AddListener(OnStartPressed);
@@ -59,6 +57,7 @@ public class GameManager : MonoBehaviour
 
         if (ball != null)
         {
+            Vector2 ballSpawnPosition = PortalDropSpec.BallSpawnPosition;
             ball.transform.position = new Vector3(ballSpawnPosition.x, ballSpawnPosition.y, ball.transform.position.z);
             ball.Freeze();
         }

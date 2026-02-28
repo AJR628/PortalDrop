@@ -14,17 +14,11 @@ public class InputPortalPlacer : MonoBehaviour
 
     private Camera Cam => mainCamera != null ? mainCamera : Camera.main;
 
-    private const float Left = -5f;
-    private const float Right = 5f;
-    private const float Bottom = -8f;
-    private const float Top = 8f;
-    private const float CornerMargin = 0.75f;
-    private const float PortalHalfWidth = 0.5f;
-    private const float Margin = PortalHalfWidth + CornerMargin;
-
     private void Update()
     {
-        if (gameManager == null || gameManager.State != GameState.PlacingPortal && gameManager.State != GameState.Ready)
+        if (gameManager == null ||
+            (gameManager.State != GameManager.GameState.PlacingPortal &&
+             gameManager.State != GameManager.GameState.Ready))
             return;
 
         if (exitPortalTransform == null || exitPortalPortal == null || Cam == null)
@@ -64,46 +58,46 @@ public class InputPortalPlacer : MonoBehaviour
 
     private Vector2 SnapToPerimeter(Vector2 worldPoint)
     {
-        float distTop = Mathf.Abs(worldPoint.y - Top);
-        float distBottom = Mathf.Abs(worldPoint.y - Bottom);
-        float distLeft = Mathf.Abs(worldPoint.x - Left);
-        float distRight = Mathf.Abs(worldPoint.x - Right);
+        float distTop = Mathf.Abs(worldPoint.y - PortalDropSpec.ArenaTop);
+        float distBottom = Mathf.Abs(worldPoint.y - PortalDropSpec.ArenaBottom);
+        float distLeft = Mathf.Abs(worldPoint.x - PortalDropSpec.ArenaLeft);
+        float distRight = Mathf.Abs(worldPoint.x - PortalDropSpec.ArenaRight);
 
         float minDist = Mathf.Min(distTop, distBottom, distLeft, distRight);
 
-        float clampMin = Left + Margin;
-        float clampMax = Right - Margin;
-        float clampYMin = Bottom + Margin;
-        float clampYMax = Top - Margin;
+        float clampMin = PortalDropSpec.ArenaLeft + PortalDropSpec.PortalSnapMargin;
+        float clampMax = PortalDropSpec.ArenaRight - PortalDropSpec.PortalSnapMargin;
+        float clampYMin = PortalDropSpec.ArenaBottom + PortalDropSpec.PortalSnapMargin;
+        float clampYMax = PortalDropSpec.ArenaTop - PortalDropSpec.PortalSnapMargin;
 
         if (minDist == distTop)
         {
             float x = Mathf.Clamp(worldPoint.x, clampMin, clampMax);
-            return new Vector2(x, Top);
+            return new Vector2(x, PortalDropSpec.ArenaTop);
         }
         if (minDist == distBottom)
         {
             float x = Mathf.Clamp(worldPoint.x, clampMin, clampMax);
-            return new Vector2(x, Bottom);
+            return new Vector2(x, PortalDropSpec.ArenaBottom);
         }
         if (minDist == distLeft)
         {
             float y = Mathf.Clamp(worldPoint.y, clampYMin, clampYMax);
-            return new Vector2(Left, y);
+            return new Vector2(PortalDropSpec.ArenaLeft, y);
         }
         float yRight = Mathf.Clamp(worldPoint.y, clampYMin, clampYMax);
-        return new Vector2(Right, yRight);
+        return new Vector2(PortalDropSpec.ArenaRight, yRight);
     }
 
     private void PlaceExitPortal(Vector2 position)
     {
         exitPortalTransform.position = new Vector3(position.x, position.y, exitPortalTransform.position.z);
 
-        if (position.y >= Top - 0.01f)
+        if (position.y >= PortalDropSpec.ArenaTop - 0.01f)
             exitPortalPortal.SetSide(Portal.PortalSide.Top);
-        else if (position.y <= Bottom + 0.01f)
+        else if (position.y <= PortalDropSpec.ArenaBottom + 0.01f)
             exitPortalPortal.SetSide(Portal.PortalSide.Bottom);
-        else if (position.x <= Left + 0.01f)
+        else if (position.x <= PortalDropSpec.ArenaLeft + 0.01f)
             exitPortalPortal.SetSide(Portal.PortalSide.Left);
         else
             exitPortalPortal.SetSide(Portal.PortalSide.Right);
