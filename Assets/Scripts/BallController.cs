@@ -51,7 +51,7 @@ public class BallController : MonoBehaviour
         if (rb != null)
         {
             rb.simulated = false;
-            rb.velocity = Vector2.zero;
+            rb.linearVelocity = Vector2.zero;
             rb.angularVelocity = 0f;
         }
     }

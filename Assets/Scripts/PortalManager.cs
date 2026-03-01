@@ -37,7 +37,7 @@ public class PortalManager : MonoBehaviour
     {
         Vector2 entryNormal = entryPortal.InwardNormal;
         Vector2 exitNormal = exitPortalPortal.InwardNormal;
-        Vector2 vIn = ball.Rigidbody.velocity;
+        Vector2 vIn = ball.Rigidbody.linearVelocity;
 
         float angle = Vector2.SignedAngle(entryNormal, exitNormal);
         Vector2 vOut = Quaternion.Euler(0f, 0f, angle) * vIn;
@@ -47,7 +47,7 @@ public class PortalManager : MonoBehaviour
         Vector2 newPos = exitPos + exitNormal * offset;
 
         ball.transform.position = new Vector3(newPos.x, newPos.y, ball.transform.position.z);
-        ball.Rigidbody.velocity = vOut;
+        ball.Rigidbody.linearVelocity = vOut;
         ball.SetTeleportCooldown(PortalDropSpec.TeleportCooldownSeconds);
     }
 }
