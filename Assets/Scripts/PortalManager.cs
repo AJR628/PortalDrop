@@ -10,8 +10,13 @@ public class PortalManager : MonoBehaviour
     [SerializeField] private Transform exitPortalTransform;
     [SerializeField] private Portal exitPortalPortal;
     [SerializeField] private BallController ballController;
+    [SerializeField] private GameManager gameManager;
 
     private Portal entryPortal;
+    public Transform ExitPortalTransform => exitPortalTransform;
+    public Portal ExitPortalPortal => exitPortalPortal;
+    public BallController BallController => ballController;
+    public GameManager GameManager => gameManager;
 
     private void Awake()
     {
@@ -20,6 +25,9 @@ public class PortalManager : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
+        if (gameManager == null || gameManager.State != GameState.Running)
+            return;
+
         if (ballController == null || exitPortalTransform == null || exitPortalPortal == null)
             return;
 
@@ -38,13 +46,8 @@ public class PortalManager : MonoBehaviour
         Vector2 entryNormal = entryPortal.InwardNormal;
         Vector2 exitNormal = exitPortalPortal.InwardNormal;
         Vector2 vIn = ball.Rigidbody.linearVelocity;
-
-        float angle = Vector2.SignedAngle(entryNormal, exitNormal);
-        Vector2 vOut = Quaternion.Euler(0f, 0f, angle) * vIn;
-
-        float offset = ball.BallRadius + PortalDropSpec.TeleportExitOffset;
-        Vector2 exitPos = exitPortalTransform.position;
-        Vector2 newPos = exitPos + exitNormal * offset;
+        Vector2 vOut = PortalMath.RotateVelocity(vIn, entryNormal, exitNormal);
+        Vector2 newPos = PortalMath.ComputeTeleportPosition(exitPortalTransform.position, exitNormal, ball.BallRadius);
 
         ball.transform.position = new Vector3(newPos.x, newPos.y, ball.transform.position.z);
         ball.Rigidbody.linearVelocity = vOut;

@@ -1,0 +1,11 @@
+{
+    "name": "PortalDrop.PlayModeTests",
+    "references": [
+        "PortalDrop.Runtime"
+    ],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": []
+}

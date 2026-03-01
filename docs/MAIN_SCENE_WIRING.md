@@ -1,111 +1,158 @@
 # Main.unity Wiring Checklist
 
-Use this checklist when setting up the Main scene. ArenaRect: left=-5, right=+5, bottom=-8, top=+8.
+Use this checklist when creating `Assets/Scenes/Main.unity`. Values below must match `PortalDropSpec`.
 
----
+## Root Objects
 
-## 1. Create GameObjects
+Create these root objects:
 
-| GameObject   | Parent   | Notes                    |
-|--------------|----------|--------------------------|
-| Main Camera  | (root)   | Orthographic             |
-| Arena        | (root)   | Empty parent for walls   |
-| Ball         | (root)   | Spawn inside arena       |
-| PortalEntry  | (root)   | Fixed on bottom wall     |
-| PortalExit   | (root)   | User-placed on boundary  |
-| Canvas       | (root)   | UI overlay               |
-| GameManager  | (root)   | Empty, holds scripts     |
+- `Main Camera`
+- `Global Light 2D`
+- `Arena`
+- `Ball`
+- `PortalEntry`
+- `PortalExit`
+- `Canvas`
+- `EventSystem`
+- `GameManager`
 
----
+## Main Camera
 
-## 2. Main Camera
+- Camera projection: Orthographic
+- Position: `(0, 0, -10)`
+- Orthographic size: `8.5`
+- Clear flags: Solid Color
 
-- Projection: Orthographic
-- Size: 8–9 (for 16-height arena)
-- Position: (0, 0, -10)
-- Clear Flags: Solid Color
+## Arena
 
----
+`Arena` is an empty parent for the four wall strips.
 
-## 3. Arena (4 Wall Strips)
+Create these child objects under `Arena`:
 
-**Wall thickness t** (e.g., 0.2). Inner collision edge = ArenaRect edge.
+- `TopWall`
+- `BottomWall`
+- `LeftWall`
+- `RightWall`
 
-Create 4 child GameObjects under Arena:
+Each wall uses:
 
-| Wall   | Position (center) | BoxCollider2D size | Notes                    |
-|--------|-------------------|--------------------|--------------------------|
-| Top    | (0, 8 + t/2)      | (10 + 2t, t)       | e.g. (0, 8.1) for t=0.2  |
-| Bottom | (0, -8 - t/2)     | (10 + 2t, t)       | e.g. (0, -8.1)           |
-| Left   | (-5 - t/2, 0)     | (t, 16 + 2t)       | e.g. (-5.1, 0)           |
-| Right  | (5 + t/2, 0)      | (t, 16 + 2t)       | e.g. (5.1, 0)            |
+- `SpriteRenderer` for visibility
+- `BoxCollider2D`
+- no Rigidbody2D
+- collider `isTrigger = false`
 
-- All walls: BoxCollider2D, **not** trigger
-- No Rigidbody2D on walls (static)
+Wall placement:
 
----
+- `TopWall`: position `(0, 8.1, 0)`, scale `(10.4, 0.2, 1)`, collider size `(10.4, 0.2)`
+- `BottomWall`: position `(0, -8.1, 0)`, scale `(10.4, 0.2, 1)`, collider size `(10.4, 0.2)`
+- `LeftWall`: position `(-5.1, 0, 0)`, scale `(0.2, 16.4, 1)`, collider size `(0.2, 16.4)`
+- `RightWall`: position `(5.1, 0, 0)`, scale `(0.2, 16.4, 1)`, collider size `(0.2, 16.4)`
 
-## 4. Ball
+## Ball
 
-- **Position**: (0, 7.4) — inside arena, below top (spawnY = top - 0.6)
-- **Components**:
-  - Rigidbody2D: Dynamic, Gravity Scale 1
-  - Collision Detection: **Continuous**
-  - Interpolation: **Interpolate**
-  - CircleCollider2D: radius 0.25 (or as desired)
-  - BallController
-- **Tag**: "Ball" (optional, for PortalManager lookup)
+- Position must match `PortalMath.ComputeSpawnPosition(ballRadius)` on load
+- Components:
+  - `SpriteRenderer`
+  - `Rigidbody2D`
+  - `CircleCollider2D`
+  - `BallController`
+- Rigidbody2D:
+  - Body Type: Dynamic
+  - Gravity Scale: `1`
+  - Collision Detection: Continuous
+  - Interpolation: Interpolate
+- CircleCollider2D radius: `0.25`
 
----
+## PortalEntry
 
-## 5. PortalEntry
+- Position: `(0, -7.75, 0)`
+- Scale: `(1.75, 0.5, 1)`
+- Components:
+  - `SpriteRenderer`
+  - `BoxCollider2D`
+  - `Portal`
+  - `PortalManager`
+- BoxCollider2D:
+  - size `(1.75, 0.5)`
+  - `isTrigger = true`
+- Portal:
+  - side `Bottom`
+  - inward normal `(0, 1)`
 
-- **Position**: (0, -8 + 0.25) = (0, -7.75) — slightly inside arena from bottom
-- **Components**:
-  - BoxCollider2D: isTrigger = true, size (1.5–2.0, 0.5) — width 1.5–2.0 units
-  - Portal: Side = Bottom, InwardNormal = (0, 1)
-  - PortalManager — attach here so it receives OnTriggerEnter2D when ball enters
+## PortalExit
 
----
+- Position: `(5, 0, 0)`
+- Scale: `(1.0, 0.5, 1)`
+- Components:
+  - `SpriteRenderer`
+  - `BoxCollider2D`
+  - `Portal`
+- BoxCollider2D:
+  - size `(1.0, 0.5)`
+  - `isTrigger = true`
+- Portal:
+  - side `Right`
+  - inward normal `(-1, 0)`
 
-## 6. PortalExit
-
-- **Initial position**: Right wall middle — (5, 0) on boundary
-- **Components**:
-  - BoxCollider2D: isTrigger = true, size (1.0, 0.5) or similar
-  - Portal: Side = Right, InwardNormal = (-1, 0)
-- InputPortalPlacer will move this when user taps
-
----
-
-## 7. Canvas
+## Canvas
 
 - Render Mode: Screen Space - Overlay
-- Add **EventSystem** (usually auto-created)
-- **Start/Drop** button: Wire onClick → GameManager.OnStartPressed
-- **Reset** button: Wire onClick → GameManager.OnResetPressed
+- Components:
+  - `Canvas`
+  - `CanvasScaler`
+  - `GraphicRaycaster`
 
----
+Canvas contains:
 
-## 8. GameManager (Empty GameObject)
+- `StartButton`
+- `ResetButton`
 
-- **Components**: GameManager, InputPortalPlacer
-- **Serialized refs** (assign in Inspector):
-  - Ball (BallController)
-  - PortalEntry (Transform)
-  - PortalExit (Transform)
-  - Start button
-  - Reset button
-  - Main Camera (for InputPortalPlacer)
-- **Note**: PortalManager is on PortalEntry (see §9). InputPortalPlacer needs: exitPortal, gameManager (for state), mainCamera
+Buttons use:
 
----
+- `RectTransform`
+- `CanvasRenderer`
+- `Image`
+- `Button`
 
-## 9. PortalManager Trigger Setup
+`StartButton` must start disabled. GameManager enables it only after user placement.
 
-**PortalManager** must receive `OnTriggerEnter2D` when the ball enters the entry portal. Per spec (6 scripts only), PortalManager handles this.
+## EventSystem
 
-**Setup**: Attach **PortalManager** to **PortalEntry** (same GameObject that has the entry BoxCollider2D trigger). PortalManager gets `OnTriggerEnter2D` directly.
+- Components:
+  - `EventSystem`
+  - `StandaloneInputModule`
 
-- PortalEntry components: BoxCollider2D (trigger) + Portal + **PortalManager**
-- PortalManager serialized refs: exitPortal (Transform), exitPortalPortal (Portal), ballController (BallController)
+## GameManager Object
+
+`GameManager` is an empty root object with:
+
+- `GameManager`
+- `InputPortalPlacer`
+
+Serialized refs on `GameManager`:
+
+- `ball` -> `Ball/BallController`
+- `portalEntry` -> `PortalEntry/Transform`
+- `portalExit` -> `PortalExit/Transform`
+- `startButton` -> `Canvas/StartButton/Button`
+- `resetButton` -> `Canvas/ResetButton/Button`
+
+Serialized refs on `InputPortalPlacer`:
+
+- `exitPortalTransform` -> `PortalExit/Transform`
+- `exitPortalPortal` -> `PortalExit/Portal`
+- `gameManager` -> `GameManager/GameManager`
+- `mainCamera` -> `Main Camera/Camera`
+
+Serialized refs on `PortalManager`:
+
+- `exitPortalTransform` -> `PortalExit/Transform`
+- `exitPortalPortal` -> `PortalExit/Portal`
+- `ballController` -> `Ball/BallController`
+- `gameManager` -> `GameManager/GameManager`
+
+## Build Settings
+
+- `Assets/Scenes/Main.unity` must exist
+- `ProjectSettings/EditorBuildSettings.asset` must register `Main.unity`
+- `Main.unity` is the only required scene for Wave 1

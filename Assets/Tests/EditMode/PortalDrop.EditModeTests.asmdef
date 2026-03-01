@@ -1,0 +1,13 @@
+{
+    "name": "PortalDrop.EditModeTests",
+    "references": [
+        "PortalDrop.Runtime"
+    ],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": []
+}

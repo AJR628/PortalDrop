@@ -1,191 +1,142 @@
-# Portal Drop — SSOT Spec
+# Portal Drop - Wave 1 SSOT Spec
 
-Single source of truth for the Portal Drop Unity 2D prototype. Follow exactly; do not add systems beyond this scope.
+Single source of truth for the PortalDrop Wave 1 MVP. Scope is only:
 
----
+- place the exit portal
+- press Start to drop the ball
+- teleport from the fixed entry portal to the placed exit portal
+- press Reset to return to a clean PlacingPortal state
 
-## 1. Core Loop and Rules
+Do not add scoring, particles, level flow, or goal logic in this wave.
 
-- **Entry portal**: Fixed on bottom wall, center. Ball enters here.
-- **Exit portal**: User places on arena boundary before run. Ball exits here.
-- **Flow**: User taps boundary → exit portal snaps → Start/Drop → ball spawns → ball falls → enters entry portal → teleports to exit with rotated velocity → Reset returns to placement.
-- **Win condition**: Reserved for later (GoalZone stub only).
+## Core Loop
 
----
+1. Scene boots in `PlacingPortal`.
+2. Exit portal starts at the default right-wall position, but this does not count as a user placement.
+3. User taps or clicks the arena boundary.
+4. Exit portal snaps to the nearest valid perimeter point and `Start` becomes enabled.
+5. User presses `Start`.
+6. Ball physics begins and the ball falls.
+7. Ball overlaps the entry portal trigger.
+8. Ball teleports to the exit portal using rotated velocity.
+9. User presses `Reset`.
+10. Scene returns to a clean `PlacingPortal` state.
 
-## 2. Teleport Math Definition
+## Authoritative Constants
 
-```
-angle = SignedAngle(entryNormal, exitNormal)
-vOut = Rotate(vIn, angle)
-```
+All Wave 1 constants live in `PortalDropSpec`.
 
-- Preserve speed; rotate velocity from entry inward normal to exit inward normal.
-- **Position**: `exitPosition + exitNormal * offset`, where `offset = ballRadius + 0.05f`.
-- **Cooldown**: 0.15s to prevent instant re-teleport.
-- **Trigger**: Only on ENTRY portal overlap. EXIT portal does not teleport.
+### Arena
 
----
+- Left: `-5`
+- Right: `5`
+- Bottom: `-8`
+- Top: `8`
+- Size: `10 x 16`
 
-## 3. ArenaRect (Authoritative)
+### Camera
 
-**Canonical rectangle** — use for all snapping and geometry. Do **not** use Collider2D.bounds (wall strips have thickness).
+- Orthographic
+- Position: `(0, 0, -10)`
+- Size: `8.5`
 
-| Edge   | Value |
-|--------|-------|
-| left   | -5    |
-| right  | +5    |
-| bottom | -8    |
-| top    | +8    |
+### Walls
 
-- Center: (0, 0)
-- Size: 10 × 16 world units
+- Thickness: `0.2`
+- Use four thin `BoxCollider2D` wall strips
+- Inner wall edge must align with the arena rectangle
 
----
+Wall centers:
 
-## 4. Snap-to-Boundary Algorithm
+- Top: `(0, 8.1)`
+- Bottom: `(0, -8.1)`
+- Left: `(-5.1, 0)`
+- Right: `(5.1, 0)`
 
-- **Input**: Screen/tap point → `Camera.ScreenToWorldPoint` → world point.
-- **Snap**: Nearest point on ArenaRect perimeter (4 segments: top, bottom, left, right).
-- **No-corners margin**: When snapping to a side, clamp along that edge by `portalHalfWidth + cornerMargin`.
-  - `portalHalfWidth` = `PortalExit` BoxCollider2D `size.x / 2` (when on top/bottom) or `size.y / 2` (when on left/right). Or lock `portalHalfWidth = 0.5f` for MVP.
-  - `cornerMargin` default: `0.75f`.
-- **Optional quantize**: 0.25 unit increments along perimeter for puzzle feel.
+Wall collider sizes:
 
----
+- Top: `(10.4, 0.2)`
+- Bottom: `(10.4, 0.2)`
+- Left: `(0.2, 16.4)`
+- Right: `(0.2, 16.4)`
 
-## 5. Wall Placement (Inner Edge = ArenaRect)
+### Ball
 
-If using thin wall strips (thickness = t), place so the **inner** collision boundary matches ArenaRect edges:
+- `CircleCollider2D` radius: `0.25`
+- Rigidbody2D body type: Dynamic
+- Gravity Scale: `1`
+- Collision Detection: Continuous
+- Interpolation: Interpolate
+- `ballRadius = circleCollider.radius * max(lossyScale.x, lossyScale.y)`
+- Spawn margin: `0.10`
+- Spawn position: `(0, 7.65)` when radius is `0.25`
 
-| Wall   | Center position        |
-|--------|-------------------------|
-| Top    | (0, top + t/2)          |
-| Bottom | (0, bottom - t/2)       |
-| Left   | (left - t/2, 0)        |
-| Right  | (right + t/2, 0)       |
+### Entry Portal
 
-Example: t = 0.2 → Top wall center at (0, 8.1), Bottom at (0, -8.1), Left at (-5.1, 0), Right at (5.1, 0).
+- Position: `(0, -7.75)`
+- Size: `(1.75, 0.5)`
+- Side: `Bottom`
+- Inward normal: `(0, 1)`
+- Trigger only
 
----
+### Exit Portal
 
-## 6. Ball Radius and Spawn
+- Default position: `(5, 0)`
+- Size: `(1.0, 0.5)`
+- Default side: `Right`
+- Inward normal: `(-1, 0)`
+- Trigger only
 
-**ballRadius** (for spawn position and teleport offset):
+### Snap Rules
 
-```
-ballRadius = circleCollider.radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.y)
-```
+- Nearest arena side wins
+- Corner margin: `0.75`
+- Portal half-width for Wave 1: `0.5`
+- Snap margin: `1.25`
+- Tie-break order: `Top`, then `Bottom`, then `Left`, then `Right`
+- No quantization in Wave 1
 
-**Spawn position**: Inside arena, near top. `spawnY = top - (ballRadius + margin)`, margin default 0.05–0.1.
+### Teleport Rules
 
-- Example: top = 8, ballRadius ≈ 0.25, margin = 0.1 → spawnY = 7.65. Or use spawnY = 7.4 for simplicity.
+- `angle = SignedAngle(entryNormal, exitNormal)`
+- `vOut = Rotate(vIn, angle)`
+- Preserve speed
+- Exit position: `exitPosition + exitNormal * (ballRadius + 0.05)`
+- Cooldown: `0.15` seconds
+- Only the entry portal teleports
 
----
+### Simulation Rules
 
-## 7. Game States (MVP)
+- `Time.fixedDeltaTime = 1 / 60`
+- `PlacingPortal` and `Ready`: `rb.simulated = false`
+- `Running`: `rb.simulated = true`
+- Reset clears velocity, angular velocity, and teleport cooldown
 
-| State         | Description                                           |
-|---------------|-------------------------------------------------------|
-| PlacingPortal | User can tap to place/move exit portal                |
-| Ready         | Exit placed, Start enabled, ball at spawn             |
-| Running       | Ball dropped, physics active                          |
-| Reset         | Returns to PlacingPortal or Ready, ball back at spawn |
+## Wave 1 States
 
----
+- `PlacingPortal`: exit portal can be placed, Start is disabled
+- `Ready`: player has placed the exit portal, Start is enabled, ball is frozen at spawn
+- `Running`: Start has been pressed, placement is locked, ball physics is active
 
-## 8. Script List and Responsibilities
+Reset always returns to `PlacingPortal`.
 
-| Script                 | Responsibility                                                       |
-|------------------------|----------------------------------------------------------------------|
-| `GameManager.cs`       | State machine, Start/Reset, ball spawn, `Time.fixedDeltaTime = 1/60` |
-| `PortalManager.cs`     | Entry/exit refs, trigger detection on entry only, teleport logic     |
-| `Portal.cs`            | PortalSide enum, inward normal, side/normal helpers                  |
-| `InputPortalPlacer.cs` | Tap/click → world point → snap to perimeter → position PortalExit   |
-| `BallController.cs`    | Rigidbody2D ref, CanTeleport, SetTeleportCooldown                    |
-| `GoalZone.cs`          | Stub (empty or log hits)                                             |
+## Runtime Ownership
 
----
+- `PortalDropSpec.cs`: single authority for constants
+- `PortalMath.cs`: pure math for rotation, snap, spawn, and teleport position
+- `GameManager.cs`: state machine, reset/start gating, default exit placement, spawn/reset
+- `InputPortalPlacer.cs`: tap and click handling, UI rejection, exit placement
+- `PortalManager.cs`: entry trigger teleport
+- `Portal.cs`: side and inward normal mapping
+- `BallController.cs`: radius, Rigidbody2D access, freeze/reset/cooldown
+- `GoalZone.cs`: stub only, unused in Wave 1
 
-## 9. Scene Object Recipe (Main.unity)
+## Acceptance Checks
 
-See [MAIN_SCENE_WIRING.md](MAIN_SCENE_WIRING.md) for the full wiring checklist.
-
-```
-Main Camera
-  - Orthographic, size for portrait (~8–9), arena centered
-
-Arena (empty parent)
-  - 4 thin BoxCollider2D wall strips (Top/Bottom/Left/Right) OR EdgeCollider2D loop
-  - Do NOT use a single filled BoxCollider2D
-  - Wall inner edges align with ArenaRect (see §5)
-
-Ball
-  - Rigidbody2D (Dynamic), CircleCollider2D
-  - Collision Detection: Continuous; Interpolation: Interpolate
-  - PhysicsMaterial2D (optional bounce)
-  - Spawn: inside arena, spawnY = top - (ballRadius + margin)
-
-PortalEntry
-  - BoxCollider2D (isTrigger), width 1.5–2.0 units
-  - Position: slightly inside arena (bottom + 0.25), center on bottom wall
-  - inward normal: (0, 1)
-
-PortalExit
-  - BoxCollider2D (isTrigger)
-  - Initial: right wall middle
-  - Movable via tap in PlacingPortal/Ready
-
-Canvas
-  - Start/Drop button, Reset button
-```
-
----
-
-## 10. Critical Unity Collider + Simulation Rules
-
-- **Arena boundary**: 4 thin BoxCollider2D strips or EdgeCollider2D loop. Not a filled box.
-- **PortalEntry trigger**: Position slightly inside arena (bottom + 0.25). Width 1.5–2.0 units.
-- **Ball physics frozen until Start**:
-  - PlacingPortal/Ready: `rb.simulated = false`, velocities zeroed on reset
-  - Running: `rb.simulated = true`
-- **InputPortalPlacer**: Ignore taps on UI — `EventSystem.current.IsPointerOverGameObject()` (mouse), `IsPointerOverGameObject(touch.fingerId)` (touch).
-- **Teleport**: Triggers only on ENTRY portal overlap. EXIT portal does not teleport.
-
----
-
-## 11. Determinism Knobs
-
-- `Time.fixedDeltaTime = 1/60` — set in `GameManager.Awake` (do not rely on manual Project Settings).
-- Ball Rigidbody2D: Collision Detection = Continuous; Interpolation = Interpolate.
-- Teleport offset: `ballRadius + 0.05f`.
-
----
-
-## 12. Known Non-Goals (MVP)
-
-- No level system, no scoring, no particles
-- No backend, accounts, ads, subscriptions
-- Single scene only
-
----
-
-## 13. Acceptance Checks
-
-1. Tap boundary → exit portal snaps to perimeter point (respect corner margin).
-2. Start/Drop → ball drops (physics enabled).
-3. Ball overlaps ENTRY portal trigger → teleports to exit with rotated velocity, continues moving.
-4. Reset → ball returns to spawn, physics frozen again, repeatable.
-
----
-
-## 14. Decision Log
-
-- ArenaRect: left=-5, right=+5, bottom=-8, top=+8 (size 10×16, center 0,0).
-- Wall strips: inner edge = ArenaRect edge; centers at top+t/2, bottom-t/2, left-t/2, right+t/2.
-- portalHalfWidth: from BoxCollider2D or 0.5f for MVP; cornerMargin = 0.75f.
-- ballRadius: `circleCollider.radius * max(lossyScale.x, lossyScale.y)`.
-- Ball spawn: inside arena, top - (ballRadius + margin).
-- Cooldown: 0.15s.
-- Exit offset: ballRadius + 0.05f.
-- fixedDeltaTime: 1/60 in GameManager.Awake.
+1. Scene boots in `PlacingPortal` with Start disabled.
+2. Default exit portal is at `(5, 0)` but Start remains disabled until the first user placement.
+3. Tap or click near a wall and the exit portal snaps to the nearest valid perimeter point.
+4. Start enables only after user placement.
+5. Press Start and the ball begins falling.
+6. Ball entering the entry portal teleports to the exit portal and keeps its speed with rotated direction.
+7. Press Reset and the ball returns to spawn, the exit portal returns to default right-middle, Start becomes disabled, and state returns to `PlacingPortal`.

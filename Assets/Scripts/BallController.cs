@@ -46,6 +46,18 @@ public class BallController : MonoBehaviour
         teleportCooldownRemaining = seconds;
     }
 
+    public void ClearTeleportCooldown()
+    {
+        teleportCooldownRemaining = 0f;
+    }
+
+    public void ResetForPlacement(Vector2 spawnPosition)
+    {
+        transform.position = new Vector3(spawnPosition.x, spawnPosition.y, transform.position.z);
+        ClearTeleportCooldown();
+        Freeze();
+    }
+
     public void Freeze()
     {
         if (rb != null)
